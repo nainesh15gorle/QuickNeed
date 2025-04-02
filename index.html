@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickNeed</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <style>
+    /* Shared Styles */
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+    }
+    .hidden {
+      display: none;
+    }
+    
+    /* Login Page Styles */
+    .login-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      width: 350px;
+      text-align: center;
+      margin: auto;
+    }
+    .login-page {
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .logo {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #2563EB;
+      margin-bottom: 1rem;
+    }
+    .logo span {
+      color: #F97316;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2563EB;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #1D4ED8;
+    }
+    #error {
+      color: red;
+      margin-top: 10px;
+    }
+    
+    /* Dashboard Styles */
+    .dashboard-page {
+      display: none;
+    }
+    .header {
+      background: linear-gradient(135deg, #2563EB, #3B82F6);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .logout-btn {
+      background: #F97316;
+    }
+    .notifications-btn {
+      background: #3B82F6;
+    }
+    .new-request-btn {
+      background: #10B981;
+    }
+    .profile-btn {
+      background: #8B5CF6;
+    }
+    .search-bar, .request-form, .notifications-panel, .profile-panel {
+      padding: 1rem 2rem;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+    }
+    #search, #requestTitle, #requestDesc, #category {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    #requestDesc {
+      min-height: 80px;
+      margin: 10px 0;
+    }
+    .request-card, .notification-card {
+      background: white;
+      margin: 1rem 2rem;
+      padding: 1rem;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .accept-btn, #submitRequest {
+      background: #10B981;
+    }
+    .deny-btn {
+      background: #EF4444;
+    }
+    .notification-badge {
+      background: #EF4444;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    .flex-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2rem;
+      gap: 10px;
+    }
+    .category-tag {
+      display: inline-block;
+      background: #E0F2FE;
+      color: #0369A1;
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      margin-right: 5px;
+    }
+    .rating-stars {
+      color: #F59E0B;
+      margin: 5px 0;
+    }
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 1rem;
+    }
+    .profile-pic {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #DDD;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    .profile-info {
+      flex-grow: 1;
+    }
+    .profile-stats {
+      display: flex;
+      gap: 15px;
+      margin-top: 1rem;
+    }
+    .stat-box {
+      background: #F3F4F6;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Page -->
+  <div id="loginPage" class="login-page">
+    <div class="login-container">
+      <div class="logo">quick<span>need</span> ⚡</div>
+      <input id="email" type="email" placeholder="Email" required>
+      <input id="password" type="password" placeholder="Password" required>
+      <button id="loginBtn">Login</button>
+      <p id="error"></p>
+    </div>
+  </div>
+
+  <!-- Dashboard Page -->
+  <div id="dashboardPage" class="dashboard-page">
+    <div class="header">
+      <div class="logo">quickneed ⚡</div>
+      <div class="header-buttons">
+        <button class="profile-btn" id="profileBtn">
+          <i class="fas fa-user"></i>
+        </button>
+        <button class="notifications-btn" id="notificationsBtn">
+          <i class="fas fa-bell"></i> <span id="notificationCount" class="notification-badge hidden">0</span>
+        </button>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+
+    <div class="flex-row">
+      <button class="new-request-btn" id="newRequestBtn">+ New Help Request</button>
+      <div class="search-bar">
+        <input type="text" id="search" placeholder="Search help requests...">
+        <select id="categoryFilter" style="margin-top: 10px;">
+          <option value="">All Categories</option>
+          <option value="academic">Academic</option>
+          <option value="technical">Technical</option>
+          <option value="personal">Personal</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Request Submission Form -->
+    <div class="request-form hidden" id="requestForm">
+      <h3>Create a Help Request</h3>
+      <input type="text" id="requestTitle" placeholder="Title (e.g., Math Help)" required>
+      <select id="category" required>
+        <option value="">Select Category</option>
+        <option value="academic">Academic</option>
+        <option value="technical">Technical</option>
+        <option value="personal">Personal</option>
+        <option value="other">Other</option>
+      </select>
+      <textarea id="requestDesc" placeholder="Describe what you need..."></textarea>
+      <button id="submitRequest">Submit Request</button>
+    </div>
+
+    <!-- Profile Panel -->
+    <div class="profile-panel hidden" id="profilePanel">
+      <div class="profile-header">
+        <div class="profile-pic">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="profile-info">
+          <h3 id="userNameDisplay">User Name</h3>
+          <div class="rating-stars">
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star-half-alt"></i>
+            <i class="far fa-star"></i>
+            <span>(4.3)</span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="stat-box">
+          <div>Requests</div>
+          <div id="requestsCount">0</div>
+        </div>
+        <div class="stat-box">
+          <div>Helped</div>
+          <div id="helpedCount">0</div>
+        </div>
+        <div class="stat-box">
+          <div>Rating</div>
+          <div>4.3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div class="notifications-panel hidden" id="notificationsPanel">
+      <h3>Your Notifications</h3>
+      <div id="notificationsList"></div>
+    </div>
+
+    <!-- Requests List -->
+    <div id="requests"></div>
+  </div>
+
+  <script>
+    // Firebase Config (Replace with yours!)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_BUCKET.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // DOM Elements
+    const loginPage = document.getElementById('loginPage');
+    const dashboardPage = document.getElementById('dashboardPage');
+    const newRequestBtn = document.getElementById('newRequestBtn');
+    const requestForm = document.getElementById('requestForm');
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const notificationsPanel = document.getElementById('notificationsPanel');
+    const profileBtn = document.getElementById('profileBtn');
+    const profilePanel = document.getElementById('profilePanel');
+    const notificationCount = document.getElementById('notificationCount');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    const requestsCount = document.getElementById('requestsCount');
+    const helpedCount = document.getElementById('helpedCount');
+
+    // Toggle Request Form
+    newRequestBtn.addEventListener('click', () => {
+      requestForm.classList.toggle('hidden');
+      notificationsPanel.classList.add('hidden');
+      profilePanel.classList.add('hidden');
+      newRequestBtn.textContent = requestForm.classList.contains('hidden') 
+        ? '+ New Help Request' 
+        : 'Cancel';
+    });
+
+    // Toggle Notifications Panel
+    notificationsBtn.addEventListener('click', () => {
+      notificationsPanel.classList.toggle('hidden');
+      requestForm.classList.add('hidden');
+      profilePanel.classList.add('hidden');
+      newRequestBtn.textContent = '+ New Help Request';
+      if (!notificationsPanel.classList.contains('hidden')) {
+        loadNotifications();
+      }
+    });
+
+    // Toggle Profile Panel
+    profileBtn.addEventListener('click', () => {
+      profilePanel.classList.toggle('hidden');
+      requestForm.classList.add('hidden');
+      notificationsPanel.classList.add('hidden');
+      newRequestBtn.textContent = '+ New Help Request';
+      if (!profilePanel.classList.contains('hidden')) {
+        loadProfileStats();
+      }
+    });
+
+    // Auth Check
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginPage.style.display = 'none';
+        dashboardPage.style.display = 'block';
+        userNameDisplay.textContent = user.email.split('@')[0];
+        loadRequests();
+        setupNotificationListener();
+        loadProfileStats();
+      } else {
+        loginPage.style.display = 'flex';
+        dashboardPage.style.display = 'none';
+      }
+    });
+
+    // Login Function
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(err => document.getElementById('error').textContent = err.message);
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      auth.signOut();
+    });
+
+    // Real-Time Request Loader
+    function loadRequests(searchTerm = '', category = '') {
+      let query = db.collection('requests').orderBy('createdAt', 'desc');
+      
+      if (category) {
+        query = query.where('category', '==', category);
+      }
+      
+      query.onSnapshot(snapshot => {
+        const requestsContainer = document.getElementById('requests');
+        requestsContainer.innerHTML = '';
+        
+        snapshot.docs.forEach(doc => {
+          const request = doc.data();
+          if (searchTerm && !request.title.toLowerCase().includes(searchTerm)) return;
+          
+          requestsContainer.innerHTML += `
+            <div class="request-card">
+              <h3>${request.title}</h3>
+              <span class="category-tag">${request.category || 'uncategorized'}</span>
+              <p>${request.description}</p>
+              <div class="actions">
+                <button class="accept-btn" data-id="${doc.id}">Accept</button>
+                <button class="deny-btn" data-id="${doc.id}">Deny</button>
+              </div>
+              <small>Status: ${request.status || 'pending'} • Submitted by ${request.userName || 'anonymous'}</small>
+            </div>
+          `;
+        });
+
+        // Add event listeners to action buttons
+        document.querySelectorAll('.accept-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            db.collection('requests').doc(btn.dataset.id).update({ 
+              status: 'accepted',
+              acceptedBy: auth.currentUser.uid,
+              acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              loadProfileStats();
+            });
+          });
+        });
+
+        document.querySelectorAll('.deny-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            db.collection('requests').doc(btn.dataset.id).update({ 
+              status: 'denied' 
+            });
+          });
+        });
+      });
+    }
+
+    // Load Profile Stats
+    function loadProfileStats() {
+      const userId = auth.currentUser.uid;
+      
+      // Count user's requests
+      db.collection('requests')
+        .where('userId', '==', userId)
+        .get()
+        .then(snap => {
+          requestsCount.textContent = snap.size;
+        });
+      
+      // Count helped requests
+      db.collection('requests')
+        .where('acceptedBy', '==', userId)
+        .get()
+        .then(snap => {
+          helpedCount.textContent = snap.size;
+        });
+    }
+
+    // Load Notifications
+    function loadNotifications() {
+      const currentUserId = auth.currentUser.uid;
+      const notificationsList = document.getElementById('notificationsList');
+      
+      db.collection('requests')
+        .where('acceptedBy', '==', currentUserId)
+        .orderBy('acceptedAt', 'desc')
+        .get()
+        .then(snapshot => {
+          notificationsList.innerHTML = '';
+          
+          if (snapshot.empty) {
+            notificationsList.innerHTML = '<p>No notifications yet.</p>';
+            return;
+          }
+          
+          snapshot.docs.forEach(doc => {
+            const request = doc.data();
+            const date = request.acceptedAt?.toDate() || new Date();
+            
+            notificationsList.innerHTML += `
+              <div class="notification-card">
+                <h4>You accepted: ${request.title}</h4>
+                <span class="category-tag">${request.category || 'uncategorized'}</span>
+                <p>${request.description}</p>
+                <small>Submitted by ${request.userName} • ${date.toLocaleString()}</small>
+              </div>
+            `;
+          });
+        });
+    }
+
+    // Notification Counter
+    function setupNotificationListener() {
+      const currentUserId = auth.currentUser.uid;
+      
+      db.collection('requests')
+        .where('acceptedBy', '==', currentUserId)
+        .onSnapshot(snapshot => {
+          const count = snapshot.size;
+          if (count > 0) {
+            notificationCount.style.display = 'inline-block';
+            notificationCount.textContent = count;
+          } else {
+            notificationCount.style.display = 'none';
+          }
+        });
+    }
+
+    // Search Functionality
+    document.getElementById('search').addEventListener('input', (e) => {
+      loadRequests(e.target.value.toLowerCase(), categoryFilter.value);
+    });
+
+    // Category Filter
+    categoryFilter.addEventListener('change', (e) => {
+      loadRequests(document.getElementById('search').value.toLowerCase(), e.target.value);
+    });
+
+    // Submit New Request
+    document.getElementById('submitRequest').addEventListener('click', () => {
+      const title = document.getElementById('requestTitle').value;
+      const description = document.getElementById('requestDesc').value;
+      const category = document.getElementById('category').value;
+      
+      if (!title || !description || !category) {
+        alert('Please fill all fields!');
+        return;
+      }
+
+      db.collection('requests').add({
+        title: title,
+        description: description,
+        category: category,
+        status: 'pending',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.email.split('@')[0]
+      }).then(() => {
+        document.getElementById('requestTitle').value = '';
+        document.getElementById('requestDesc').value = '';
+        document.getElementById('category').value = '';
+        requestForm.classList.add('hidden');
+        newRequestBtn.textContent = '+ New Help Request';
+        loadProfileStats();
+      }).catch(err => alert('Error: ' + err.message));
+    });
+  </script>
+</body>
+</html>
